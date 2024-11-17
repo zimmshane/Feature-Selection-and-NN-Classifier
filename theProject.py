@@ -1,13 +1,34 @@
-
+import numpy as np
 import math
 import random
+from dataclasses import dataclass
+from pathlib import Path
 
+
+DEFAULT_FEATURE_COUNT = 5
 MAX_FEATURE_COUNT = 20
+SMALL_DATA = Path("small-test-dataset.txt")
+BIG_DATA = Path("large-test-dataset.txt")
+
+class Data:
+    labels = np.array
+    features = np.array
+    
+    def __init__ (self):
+        pass
+       
+    def loadTestData(self,testSet=SMALL_DATA): # SMALL_DATA or BIG_DATA
+        print(f"Loading {testSet}...")
+        data = np.loadtxt(testSet)
+        self.labels = data[:,0].astype(int)
+        self.features = data[:,1:]
+        print(f"Successfully Loaded into Matrix of Size {data.shape}")
+        
 
 class FeatureSearch:
     featureList = []
     
-    def __init__(self,featureList = range(5)):
+    def __init__(self,featureList = range(DEFAULT_FEATURE_COUNT)):
         self.featureList = featureList
     
     def evaluate(self): 
@@ -20,7 +41,7 @@ class FeatureSearch:
         depth = 0
         print(Printer.searchStartForward)
         while depth < n:
-            bestChildAccuracy = (-math.inf,None) # (EVAL_SCORE, FEATURE_INDEX_TO_ADD)
+            bestChildAccuracy = (-math.inf, None) # (EVAL_SCORE, FEATURE_INDEX_TO_ADD)
             
             for i in range(n):
                 if self.featureList[i] in currentFeatures: continue
@@ -38,19 +59,20 @@ class FeatureSearch:
             
             currentFeatures.add(self.featureList[bestChildAccuracy[1]]) # Add back best branch
             print(f"\nAdding Feature {self.featureList[bestChildAccuracy[1]]}" )
-            print(f"New Feature Set: {currentFeatures}: Accuracy {bestChildAccuracy[0]}\n")
+            print(f"New Feature Set: {currentFeatures} ~ Accuracy {bestChildAccuracy[0]}\n")
             parentAccuracy = bestChildAccuracy[0]
             depth += 1
             
         return currentFeatures
     
-    def backwardSelection(self)->list:
+    def backwardElimination(self)->list:
         n = len(self.featureList)
         parentAccuracy = -math.inf
         currentFeatures=set(self.featureList)
         depth = 0
+        print(Printer.searchStartBackward)
         while depth < n:
-            bestChildAccuracy = (-math.inf,0) #(eval,index of that item)
+            bestChildAccuracy = (-math.inf, 0) # (eval,index of that item)
             
             for i in range(n):
                 if self.featureList[i] not in currentFeatures: continue
@@ -62,11 +84,12 @@ class FeatureSearch:
                 currentFeatures.add(self.featureList[i]) 
                 
             if bestChildAccuracy[0] < parentAccuracy: # No better options dont add -> exit
-                print(f"No children with better accuracy, returning!")
+                print(Printer.searchQuit)
                 break
             
             currentFeatures.remove(self.featureList[bestChildAccuracy[1]]) #Removing the best child from feature list
-            print(f"adding feature {self.featureList[bestChildAccuracy[1]]}! new set: {currentFeatures}, New accuracy {bestChildAccuracy[0]}")
+            print(f"\nRemoving Feature {self.featureList[bestChildAccuracy[1]]}" )
+            print(f"New Feature Set: {currentFeatures} ~ Accuracy {bestChildAccuracy[0]}\n")            
             parentAccuracy = bestChildAccuracy[0]
             depth += 1
             
@@ -77,6 +100,7 @@ class FeatureSearch:
 class Printer:
     mainWelcome : str = "Welcome to SZIMM011 and LADAM020's Project 2!"
     searchStartForward : str = "Starting Forward Selection Search... "
+    searchStartBackward : str = "Starting Backward Elimination Search... "
     searchQuit : str = "All Children Result in Lower Accuracy, Terminating Search..."
     
     @staticmethod
@@ -85,11 +109,14 @@ class Printer:
         valIn = input(prompt)
         if valIn.isnumeric() and int(valIn) < MAX_FEATURE_COUNT:
             return int(valIn)
-        return 5
+        return DEFAULT_FEATURE_COUNT
             
-        
+#MAIN      
 if __name__ == "__main__":
     print(Printer.mainWelcome)
     feet = FeatureSearch()
-    print(f"best set: {feet.forwardSelection()}")
-    print(f"best set: {feet.backwardSelection()}")
+    #print(f"Forward Selection Set: {feet.forwardSelection()}\n")
+    #print(f"Backward Elimination Set: {feet.backwardElimination()}\n")
+    hey = Data()
+    hey.loadTestData()
+    
