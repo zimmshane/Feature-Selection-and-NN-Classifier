@@ -1,7 +1,6 @@
 import numpy as np
 import math
 import random
-from dataclasses import dataclass
 from pathlib import Path
 
 
@@ -48,6 +47,7 @@ class FeatureSearch:
                 currentFeatures.add(self.featureList[i]) 
                 eval = self.evaluate()
                 print(f"{currentFeatures} Evaluated at {eval}")
+                
                 if eval > bestChildAccuracy[0]:
                     bestChildAccuracy = (eval,i)
                     
@@ -57,18 +57,19 @@ class FeatureSearch:
                 print(Printer.searchQuit)
                 break
             
-            currentFeatures.add(self.featureList[bestChildAccuracy[1]]) # Add back best branch
-            print(f"\nAdding Feature {self.featureList[bestChildAccuracy[1]]}" )
-            print(f"New Feature Set: {currentFeatures} ~ Accuracy {bestChildAccuracy[0]}\n")
+            featureChanged = self.featureList[bestChildAccuracy[1]]
+            currentFeatures.add(featureChanged) # Add back best branch
+            Printer.printFeatureChange(featureChanged,currentFeatures,bestChildAccuracy[0],True)
             parentAccuracy = bestChildAccuracy[0]
             depth += 1
             
+        Printer.printFeatureListSelected(currentFeatures,parentAccuracy)
         return currentFeatures
     
     def backwardElimination(self)->list:
         n = len(self.featureList)
         parentAccuracy = -math.inf
-        currentFeatures=set(self.featureList)
+        currentFeatures = set(self.featureList)
         depth = 0
         print(Printer.searchStartBackward)
         while depth < n:
@@ -79,26 +80,29 @@ class FeatureSearch:
                 currentFeatures.remove(self.featureList[i]) 
                 eval = self.evaluate()
                 print(f"Evaluated {currentFeatures} at {eval} ")
+                
                 if eval > bestChildAccuracy[0]:
-                    bestChildAccuracy=(eval,i)
+                    bestChildAccuracy = (eval, i)
+                    
                 currentFeatures.add(self.featureList[i]) 
                 
             if bestChildAccuracy[0] < parentAccuracy: # No better options dont add -> exit
                 print(Printer.searchQuit)
                 break
             
-            currentFeatures.remove(self.featureList[bestChildAccuracy[1]]) #Removing the best child from feature list
-            print(f"\nRemoving Feature {self.featureList[bestChildAccuracy[1]]}" )
-            print(f"New Feature Set: {currentFeatures} ~ Accuracy {bestChildAccuracy[0]}\n")            
+            featureChanged = self.featureList[bestChildAccuracy[1]]
+            currentFeatures.remove(featureChanged) #Removing the best child from feature list
+            Printer.printFeatureChange(featureChanged,currentFeatures,bestChildAccuracy[0],False)       
             parentAccuracy = bestChildAccuracy[0]
             depth += 1
-            
+        
+        Printer.printFeatureListSelected(currentFeatures,parentAccuracy)
         return currentFeatures
 
         
     
 class Printer:
-    mainWelcome : str = "Welcome to SZIMM011 and LADAM020's Project 2!"
+    mainWelcome : str = "\nWelcome to SZIMM011 and LADAM020's Project 2!"
     searchStartForward : str = "Starting Forward Selection Search... "
     searchStartBackward : str = "Starting Backward Elimination Search... "
     searchQuit : str = "All Children Result in Lower Accuracy, Terminating Search..."
@@ -110,13 +114,26 @@ class Printer:
         if valIn.isnumeric() and int(valIn) < MAX_FEATURE_COUNT:
             return int(valIn)
         return DEFAULT_FEATURE_COUNT
-            
+    
+    @staticmethod
+    def printFeatureListSelected(Currentfeatures,accuracy):
+        print()
+        print(f"Best Feature Set Found: {Currentfeatures}")
+        print(f"Acurracy: {accuracy}\n")
+    
+    @staticmethod    
+    def printFeatureChange(featureChanged,currentFeatures,accuracy,add=True):
+            if add: print("\nAdd", end="") 
+            else: print("\nRemove",end="")
+            print(f"Feature {featureChanged}" )
+            print(f"New Feature Set: {currentFeatures} ~ Accuracy {accuracy}")
+                 
 #MAIN      
 if __name__ == "__main__":
     print(Printer.mainWelcome)
     feet = FeatureSearch()
-    #print(f"Forward Selection Set: {feet.forwardSelection()}\n")
-    #print(f"Backward Elimination Set: {feet.backwardElimination()}\n")
-    hey = Data()
-    hey.loadTestData()
+    feet.forwardSelection()
+    feet.backwardElimination()
+    #hey = Data()
+    #hey.loadTestData()
     
