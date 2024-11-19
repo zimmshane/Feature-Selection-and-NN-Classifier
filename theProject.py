@@ -3,12 +3,44 @@ import math
 import random
 from pathlib import Path
 
+#  Cat to prevent bugs
+#        _                        
+#        \`*-.                    
+#         )  _`-.                 
+#        .  : `. .                
+#        : _   '  \               
+#        ; *` _.   `*-._          
+#        `-.-'          `-.       
+#          ;       `       `.     
+#          :.       .        \    
+#          . \  .   :   .-'   .   
+#          '  `+.;  ;  '      :   
+#          :  '  |    ;       ;-. 
+#          ; '   : :`-:     _.`* ;
+# [bug] .*' /  .*' ; .*`- +'  `*' 
+#       `*-*   `*-*  `*-*'
+
 
 DEFAULT_FEATURE_COUNT = 5
 MAX_FEATURE_COUNT = 20
 SMALL_DATA = Path("small-test-dataset.txt")
 BIG_DATA = Path("large-test-dataset.txt")
 
+class Validator: #Computes classifier's accuracy
+    def __init__(self):
+        pass
+    
+    def evaluate(self):
+        pass
+    
+
+class Classifier: # Calculates distance between every point for NN
+    def train(self,data):
+        pass
+    def test(self):
+        pass
+    def __calcDistance__(self)
+    
 class Data:
     labels = np.array
     features = np.array
@@ -123,8 +155,8 @@ class Printer:
     
     @staticmethod    
     def printFeatureChange(featureChanged,currentFeatures,accuracy,add=True):
-            if add: print("\nAdd", end="") 
-            else: print("\nRemove",end="")
+            if add: print("\nAdd ", end="") 
+            else: print("\nRemove ",end="")
             print(f"Feature {featureChanged}" )
             print(f"New Feature Set: {currentFeatures} ~ Accuracy {accuracy}")
                  
@@ -132,8 +164,8 @@ class Printer:
 if __name__ == "__main__":
     print(Printer.mainWelcome)
     feet = FeatureSearch()
-    feet.forwardSelection()
-    feet.backwardElimination()
-    #hey = Data()
-    #hey.loadTestData()
+    #feet.forwardSelection()
+    #feet.backwardElimination()
+    hey = Data()
+    hey.loadTestData()
     
