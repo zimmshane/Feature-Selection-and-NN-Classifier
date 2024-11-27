@@ -168,26 +168,16 @@ class Printer:
     searchStartForward : str = "\nStarting Forward Selection Search... "
     searchStartBackward : str = "\nStarting Backward Elimination Search... "
     searchQuit : str = "All Children Result in Lower Accuracy, Terminating Search..."
+    featureAlgPrompt : str ="""Type the number of the algorithm you want to run
+1) Forward Selection 
+2) Backward Elimination
+Choice: """
     
     @staticmethod
     def featureCountPrompt() -> int:
         prompt = "\nEnter the number of features: "
         valIn = input(prompt)
         return int(valIn)
-    
-    @staticmethod
-    def algPrompt(feet):
-        prompt = (
-            "\nType the number of the algorithm you want to run \n"
-            "1) Forward Selection \n"
-            "2) Backward Elimination \n"
-            "Ans: "
-        )
-        algType = input(prompt)
-        if algType == "1":
-            return feet.forwardSelection
-        elif algType == "2":
-            return feet.backwardElimination
 
     @staticmethod
     def printFeatureListSelected(Currentfeatures,accuracy):
@@ -207,9 +197,18 @@ if __name__ == "__main__":
     print(Printer.mainWelcome)
     featureCount = Printer.featureCountPrompt()
     feet = FeatureSearch(featureCount)
-    algorithm = Printer.algPrompt(feet)
-    algorithm()
+
+    featureList = []
     
-    #hey = Data()
-    #hey.loadTestData()
-    
+    algPick = input(Printer.featureAlgPrompt)
+    if algPick == "1":
+       featureList = feet.forwardSelection()
+    else:
+        featureList = feet.backwardElimination()
+
+    dadi = Data()
+    dadi.loadTestData()
+    dadi.loadFeatureList(featureList)
+    classi=Classifier()
+    classi.train(dadi)
+    print(f"Guess: {classi.test(11)} Actual:{dadi.labels[11]}")
