@@ -1,7 +1,10 @@
 import numpy as np
 import math
 import random
+import heapq
 from pathlib import Path
+from collections import Counter
+
 
 #  Cat to prevent bugs
 #        _                        
@@ -33,17 +36,10 @@ class Validator: #Computes classifier's accuracy
     def evaluate(self):
         pass
     
-
-class Classifier: # Calculates distance between every point for NN
-    def train(self,data):
-        pass
-    def test(self):
-        pass
-    def __calcDistance__(self)
-    
 class Data:
     labels = np.array
     features = np.array
+    featureList = []
     
     def __init__ (self):
         pass
@@ -55,6 +51,42 @@ class Data:
         self.features = data[:,1:]
         print(f"Successfully Loaded into Matrix of Size {data.shape}")
         
+    def loadFeatureList(self,featureList):
+        self.featureList=featureList
+        print(f"Successfully Loaded Features Set!")
+        
+class Classifier: # Calculates distance between every point for NN
+    data = Data()
+    kNN = 0
+    
+    def train(self,data, kNN = 3):
+        self.data = data
+        self.kNN = kNN
+        
+    def test(self,testIndex) -> int:
+        print("Starting Classifier Test...")
+        distList = [] #Heap (Dist to testIndex, Index)
+        print(f"Calculating the Distance between {testIndex} and the other datapoints...")
+        for R in range(len(self.data.features)):
+            if R == testIndex: continue
+            heapq.heappush(distList,(self.__calcDistance__(R,testIndex),R))
+        print(f"Finding the {self.kNN} Nearest Neighbors...")
+        counter = Counter()
+        for _ in range(self.kNN): # Get k shorests distances to testIndex
+            _ ,index = heapq.heappop(distList)
+            counter[self.data.labels[index]] += 1
+        
+        return counter.most_common(1)[0][0]
+    
+                
+    
+    def __calcDistance__(self, R, testIndex) -> float:
+        currentSum : float = 0
+        for C in self.data.featureList:
+            currentSum += (self.data.features[testIndex][C]-self.data.features[R][C])**2
+        return math.sqrt(currentSum)
+
+        
 
 class FeatureSearch:
     featureList = []
@@ -65,7 +97,7 @@ class FeatureSearch:
     def evaluate(self): 
         return random.randint(1,100) #stubbed
 
-    def forwardSelection(self)->list:
+    def forwardSelection(self) -> list:
         n = len(self.featureList)
         parentAccuracy = -math.inf
         currentFeatures = set()
@@ -164,8 +196,12 @@ class Printer:
 if __name__ == "__main__":
     print(Printer.mainWelcome)
     feet = FeatureSearch()
-    #feet.forwardSelection()
     #feet.backwardElimination()
-    hey = Data()
-    hey.loadTestData()
+    dadi = Data()
+    dadi.loadTestData()
+    dadi.loadFeatureList(feet.forwardSelection())
+    classi = Classifier()
+    classi.train(dadi)
+    print(f"Guess: {classi.test(23)} actual:{dadi.labels[23]}")
+    
     
