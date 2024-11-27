@@ -24,8 +24,6 @@ from collections import Counter
 #       `*-*   `*-*  `*-*'
 
 
-DEFAULT_FEATURE_COUNT = 5
-MAX_FEATURE_COUNT = 20
 SMALL_DATA = Path("small-test-dataset.txt")
 BIG_DATA = Path("large-test-dataset.txt")
 
@@ -79,7 +77,8 @@ class Classifier: # Calculates distance between every point for NN
         return counter.most_common(1)[0][0]
     
                 
-    
+    #return np.linalg.norm(point1 - point2)
+    #https://www.geeksforgeeks.org/calculate-the-euclidean-distance-using-numpy/
     def __calcDistance__(self, R, testIndex) -> float:
         currentSum : float = 0
         for C in self.data.featureList:
@@ -91,8 +90,8 @@ class Classifier: # Calculates distance between every point for NN
 class FeatureSearch:
     featureList = []
     
-    def __init__(self,featureList = range(DEFAULT_FEATURE_COUNT)):
-        self.featureList = featureList
+    def __init__(self,featureCount):
+        self.featureList = list(range(featureCount))
     
     def evaluate(self): 
         return random.randint(1,100) #stubbed
@@ -134,7 +133,7 @@ class FeatureSearch:
         n = len(self.featureList)
         parentAccuracy = -math.inf
         currentFeatures = set(self.featureList)
-        depth = 0
+        depth = 1
         print(Printer.searchStartBackward)
         while depth < n:
             bestChildAccuracy = (-math.inf, 0) # (eval,index of that item)
@@ -159,7 +158,6 @@ class FeatureSearch:
             Printer.printFeatureChange(featureChanged,currentFeatures,bestChildAccuracy[0],False)       
             parentAccuracy = bestChildAccuracy[0]
             depth += 1
-        
         Printer.printFeatureListSelected(currentFeatures,parentAccuracy)
         return currentFeatures
 
@@ -167,23 +165,35 @@ class FeatureSearch:
     
 class Printer:
     mainWelcome : str = "\nWelcome to SZIMM011 and LADAM020's Project 2!"
-    searchStartForward : str = "Starting Forward Selection Search... "
-    searchStartBackward : str = "Starting Backward Elimination Search... "
+    searchStartForward : str = "\nStarting Forward Selection Search... "
+    searchStartBackward : str = "\nStarting Backward Elimination Search... "
     searchQuit : str = "All Children Result in Lower Accuracy, Terminating Search..."
     
     @staticmethod
     def featureCountPrompt() -> int:
-        prompt = "Enter the number of features"
+        prompt = "\nEnter the number of features: "
         valIn = input(prompt)
-        if valIn.isnumeric() and int(valIn) < MAX_FEATURE_COUNT:
-            return int(valIn)
-        return DEFAULT_FEATURE_COUNT
+        return int(valIn)
     
+    @staticmethod
+    def algPrompt(feet):
+        prompt = (
+            "\nType the number of the algorithm you want to run \n"
+            "1) Forward Selection \n"
+            "2) Backward Elimination \n"
+            "Ans: "
+        )
+        algType = input(prompt)
+        if algType == "1":
+            return feet.forwardSelection
+        elif algType == "2":
+            return feet.backwardElimination
+
     @staticmethod
     def printFeatureListSelected(Currentfeatures,accuracy):
         print()
         print(f"Best Feature Set Found: {Currentfeatures}")
-        print(f"Acurracy: {accuracy}\n")
+        print(f"Accuracy: {accuracy}\n")
     
     @staticmethod    
     def printFeatureChange(featureChanged,currentFeatures,accuracy,add=True):
@@ -195,13 +205,11 @@ class Printer:
 #MAIN      
 if __name__ == "__main__":
     print(Printer.mainWelcome)
-    feet = FeatureSearch()
-    #feet.backwardElimination()
-    dadi = Data()
-    dadi.loadTestData()
-    dadi.loadFeatureList(feet.forwardSelection())
-    classi = Classifier()
-    classi.train(dadi)
-    print(f"Guess: {classi.test(23)} actual:{dadi.labels[23]}")
+    featureCount = Printer.featureCountPrompt()
+    feet = FeatureSearch(featureCount)
+    algorithm = Printer.algPrompt(feet)
+    algorithm()
     
+    #hey = Data()
+    #hey.loadTestData()
     
