@@ -53,7 +53,7 @@ class Classifier: # Calculates distance between every point for NN
     data = Data()
     kNN = 0
     
-    def train(self,data, kNN = 3):
+    def train(self,data, kNN = 99):
         self.data = data
         self.kNN = kNN
         
@@ -177,11 +177,19 @@ class Printer:
     searchStartForward : str = "Starting Forward Selection Search... "
     searchStartBackward : str = "Starting Backward Elimination Search... "
     searchQuit : str = "All Children Result in Lower Accuracy, Terminating Search..."
-    featureAlgPrompt : str ="""Type the number of the algorithm you want to run
+    feetAlgPrompt : str ="""Type the number of the algorithm you want to run
 1) Forward Selection 
 2) Backward Elimination
 Choice: """
     
+    @staticmethod
+    def featureAlgPrompt(feet: FeatureSearch) -> list:
+        inny = input(Printer.feetAlgPrompt)
+        if inny == 1:
+            return feet.forwardSelection()
+        else:
+            return feet.backwardElimination()
+
     @staticmethod
     def featureCountPrompt() -> int:
         prompt = "\nEnter the number of features: "
@@ -207,11 +215,7 @@ if __name__ == "__main__":
 
     featureList = []
     
-    algPick = input(Printer.featureAlgPrompt)
-    if algPick == "1":
-       featureList = feet.forwardSelection()
-    else:
-        featureList = feet.backwardElimination()
+    algPick = Printer.featureAlgPrompt()
 
     dadi = Data()
     dadi.loadTestData()
@@ -219,5 +223,5 @@ if __name__ == "__main__":
     classi=Classifier()
     classi.train(dadi)
     vally=Validator()
-    print(vally.evaluate(dadi, classi, [3, 5, 7]))
+    print(vally.evaluate(dadi, classi, [2, 4, 6]))
     print(f"Guess: {classi.test(11)} Actual:{dadi.labels[11]}")
