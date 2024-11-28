@@ -178,7 +178,6 @@ class Printer:
     searchStartBackward : str = "Starting Backward Elimination Search... "
     searchQuit : str = "All Children Result in Lower Accuracy, Terminating Search..."
     feetAlgPrompt : str ="""Type the number of the algorithm you want to run
-    feetAlgPrompt : str ="""Type the number of the algorithm you want to run
 1) Forward Selection 
 2) Backward Elimination
 Choice: """
