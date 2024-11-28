@@ -33,7 +33,7 @@ logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.INFO)
 class Data:
     labels = np.array
     features = np.array
-    featureList = []
+    featureList = np.array
     
     def __init__ (self):
         pass
@@ -46,6 +46,7 @@ class Data:
         logging.info(f"Successfully Loaded into Matrix of Size {data.shape}")
         
     def loadFeatureList(self,featureList):
+        featureList=np.array(featureList) - 1 #Label col removed -> shift left 1
         self.featureList=featureList
         logging.info(f"Successfully Loaded Features Set!")
         
@@ -58,13 +59,11 @@ class Classifier: # Calculates distance between every point for NN
         self.kNN = kNN
         
     def test(self,testIndex) -> int:
-        logging.info("Starting Classifier Test...")
         distList = [] #Heap (Dist to testIndex, Index)
         logging.info(f"Calculating the Distance between index {testIndex} and the other datapoints...")
         for R in range(len(self.data.features)):
             if R == testIndex: continue
             heapq.heappush(distList,(self.__calcDistance__(R,testIndex),R))
-        logging.info(f"Finding the {self.kNN} Nearest Neighbors...")
         counter = Counter()
         for _ in range(self.kNN): # Get k shorests distances to testIndex
             _ ,index = heapq.heappop(distList)
@@ -137,7 +136,7 @@ class FeatureSearch:
             depth += 1
             
         Printer.printFeatureListSelected(currentFeatures,parentAccuracy)
-        return currentFeatures
+        return list(currentFeatures)
     
     def backwardElimination(self)->list:
         n = len(self.featureList)
@@ -169,7 +168,7 @@ class FeatureSearch:
             parentAccuracy = bestChildAccuracy[0]
             depth += 1
         Printer.printFeatureListSelected(currentFeatures,parentAccuracy)
-        return currentFeatures
+        return list(currentFeatures)
 
         
     
@@ -178,6 +177,7 @@ class Printer:
     searchStartForward : str = "Starting Forward Selection Search... "
     searchStartBackward : str = "Starting Backward Elimination Search... "
     searchQuit : str = "All Children Result in Lower Accuracy, Terminating Search..."
+    feetAlgPrompt : str ="""Type the number of the algorithm you want to run
     feetAlgPrompt : str ="""Type the number of the algorithm you want to run
 1) Forward Selection 
 2) Backward Elimination
