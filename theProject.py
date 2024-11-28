@@ -94,7 +94,8 @@ class Validator: #Computes classifier's accuracy
                 correct+= 1
         accuracy = (correct / len(data.features)) #divide correct by total instances to get accuracy
         accuracy = round(accuracy, 4)
-        return accuracy
+        logging.info(f"{featureList} accuracy = {accuracy}")
+        
 
 class FeatureSearch:
     featureList = []
@@ -235,4 +236,4 @@ if __name__ == "__main__":
 
     dadi.loadFeatureList(featureList)
     classi.train(dadi)
-    print(vally.evaluate(dadi, classi, [2, 4, 6]))
+    vally.evaluate(dadi, classi, [3, 5, 7])
