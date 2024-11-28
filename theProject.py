@@ -2,6 +2,7 @@ import numpy as np
 import math
 import random
 import heapq
+import logging
 from pathlib import Path
 from collections import Counter
 
@@ -26,6 +27,8 @@ from collections import Counter
 
 SMALL_DATA = Path("small-test-dataset.txt")
 BIG_DATA = Path("large-test-dataset.txt")
+logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.INFO)
+
     
 class Data:
     labels = np.array
@@ -36,15 +39,15 @@ class Data:
         pass
        
     def loadTestData(self,testSet=SMALL_DATA): # SMALL_DATA or BIG_DATA
-        print(f"Loading {testSet}...")
+        logging.info(f"Loading {testSet}...")
         data = np.loadtxt(testSet)
         self.labels = data[:,0].astype(int)
         self.features = data[:,1:]
-        print(f"Successfully Loaded into Matrix of Size {data.shape}")
+        logging.info(f"Successfully Loaded into Matrix of Size {data.shape}")
         
     def loadFeatureList(self,featureList):
         self.featureList=featureList
-        print(f"Successfully Loaded Features Set!")
+        logging.info(f"Successfully Loaded Features Set!")
         
 class Classifier: # Calculates distance between every point for NN
     data = Data()
@@ -55,13 +58,13 @@ class Classifier: # Calculates distance between every point for NN
         self.kNN = kNN
         
     def test(self,testIndex) -> int:
-        print("Starting Classifier Test...")
+        logging.info("Starting Classifier Test...")
         distList = [] #Heap (Dist to testIndex, Index)
-        print(f"Calculating the Distance between {testIndex} and the other datapoints...")
+        logging.info(f"Calculating the Distance between index {testIndex} and the other datapoints...")
         for R in range(len(self.data.features)):
             if R == testIndex: continue
             heapq.heappush(distList,(self.__calcDistance__(R,testIndex),R))
-        print(f"Finding the {self.kNN} Nearest Neighbors...")
+        logging.info(f"Finding the {self.kNN} Nearest Neighbors...")
         counter = Counter()
         for _ in range(self.kNN): # Get k shorests distances to testIndex
             _ ,index = heapq.heappop(distList)
@@ -70,12 +73,11 @@ class Classifier: # Calculates distance between every point for NN
         return counter.most_common(1)[0][0]
     
                 
-    #return np.linalg.norm(point1 - point2)
-    #https://www.geeksforgeeks.org/calculate-the-euclidean-distance-using-numpy/
+    #Returns euclidian distance between testindex and row R
     def __calcDistance__(self, R, testIndex) -> float:
         currentSum : float = 0
         for C in self.data.featureList:
-            currentSum += (self.data.features[testIndex][C]-self.data.features[R][C])**2
+            currentSum += (self.data.features[testIndex,C]-self.data.features[R,C])**2
         return math.sqrt(currentSum)
 
 class Validator: #Computes classifier's accuracy
@@ -141,7 +143,7 @@ class FeatureSearch:
         parentAccuracy = -math.inf
         currentFeatures = set(self.featureList)
         depth = 1
-        print(Printer.searchStartBackward)
+        logging.info(Printer.searchStartBackward)
         while depth < n:
             bestChildAccuracy = (-math.inf, 0) # (eval,index of that item)
             
@@ -149,7 +151,7 @@ class FeatureSearch:
                 if self.featureList[i] not in currentFeatures: continue
                 currentFeatures.remove(self.featureList[i]) 
                 eval = self.evaluate()
-                print(f"Evaluated {currentFeatures} at {eval} ")
+                logging.info(f"Evaluated {currentFeatures} at {eval} ")
                 
                 if eval > bestChildAccuracy[0]:
                     bestChildAccuracy = (eval, i)
@@ -157,7 +159,7 @@ class FeatureSearch:
                 currentFeatures.add(self.featureList[i]) 
                 
             if bestChildAccuracy[0] < parentAccuracy: # No better options dont add -> exit
-                print(Printer.searchQuit)
+                logging.info(Printer.searchQuit)
                 break
             
             featureChanged = self.featureList[bestChildAccuracy[1]]
@@ -172,8 +174,8 @@ class FeatureSearch:
     
 class Printer:
     mainWelcome : str = "\nWelcome to SZIMM011 and LADAM020's Project 2!"
-    searchStartForward : str = "\nStarting Forward Selection Search... "
-    searchStartBackward : str = "\nStarting Backward Elimination Search... "
+    searchStartForward : str = "Starting Forward Selection Search... "
+    searchStartBackward : str = "Starting Backward Elimination Search... "
     searchQuit : str = "All Children Result in Lower Accuracy, Terminating Search..."
     featureAlgPrompt : str ="""Type the number of the algorithm you want to run
 1) Forward Selection 
@@ -188,16 +190,14 @@ Choice: """
 
     @staticmethod
     def printFeatureListSelected(Currentfeatures,accuracy):
-        print()
         print(f"Best Feature Set Found: {Currentfeatures}")
         print(f"Accuracy: {accuracy}\n")
     
     @staticmethod    
     def printFeatureChange(featureChanged,currentFeatures,accuracy,add=True):
-            if add: print("\nAdd ", end="") 
-            else: print("\nRemove ",end="")
-            print(f"Feature {featureChanged}" )
-            print(f"New Feature Set: {currentFeatures} ~ Accuracy {accuracy}")
+        if add: logging.info(f"Adding Feature {featureChanged}" )
+        else: logging.info(f"Removing Feature {featureChanged}" )
+        logging.info(f"New Feature Set: {currentFeatures}  Accuracy: {accuracy}")
                  
 #MAIN      
 if __name__ == "__main__":
