@@ -26,13 +26,6 @@ from collections import Counter
 
 SMALL_DATA = Path("small-test-dataset.txt")
 BIG_DATA = Path("large-test-dataset.txt")
-
-class Validator: #Computes classifier's accuracy
-    def __init__(self):
-        pass
-    
-    def evaluate(self):
-        pass
     
 class Data:
     labels = np.array
@@ -85,7 +78,21 @@ class Classifier: # Calculates distance between every point for NN
             currentSum += (self.data.features[testIndex][C]-self.data.features[R][C])**2
         return math.sqrt(currentSum)
 
-        
+class Validator: #Computes classifier's accuracy
+    def __init__(self):
+        pass
+    
+    def evaluate(self, data:Data, classifier:Classifier, featureList = None): 
+        correct = 0
+        accuracy = 0
+        if featureList: 
+            data.loadFeatureList(featureList) #will load feature list if given one
+
+        for i in range(len(data.features)): #loop through instance id
+            if data.labels[i] == classifier.test(i): #check if it got correct for each row
+                correct+= 1
+        accuracy = (correct / len(data.features)) * 100 #divide correct by total instances to get accuracy
+        return accuracy
 
 class FeatureSearch:
     featureList = []
@@ -211,4 +218,6 @@ if __name__ == "__main__":
     dadi.loadFeatureList(featureList)
     classi=Classifier()
     classi.train(dadi)
+    vally=Validator()
+    print(vally.evaluate(dadi, classi, [3, 5, 7]))
     print(f"Guess: {classi.test(11)} Actual:{dadi.labels[11]}")
