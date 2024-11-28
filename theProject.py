@@ -53,7 +53,7 @@ class Classifier: # Calculates distance between every point for NN
     data = Data()
     kNN = 0
     
-    def train(self,data, kNN = 99):
+    def train(self,data, kNN = 1):
         self.data = data
         self.kNN = kNN
         
@@ -93,7 +93,8 @@ class Validator: #Computes classifier's accuracy
         for i in range(len(data.features)): #loop through instance id
             if data.labels[i] == classifier.test(i): #check if it got correct for each row
                 correct+= 1
-        accuracy = (correct / len(data.features)) * 100 #divide correct by total instances to get accuracy
+        accuracy = (correct / len(data.features)) #divide correct by total instances to get accuracy
+        accuracy = round(accuracy, 4)
         return accuracy
 
 class FeatureSearch:
@@ -181,6 +182,10 @@ class Printer:
 1) Forward Selection 
 2) Backward Elimination
 Choice: """
+    datAlgPrompt : str ="""Type the number cooresponding to the data you want
+1) Big data 
+2) Small data
+Choice: """
     
     @staticmethod
     def featureAlgPrompt(feet: FeatureSearch) -> list:
@@ -189,6 +194,14 @@ Choice: """
             return feet.forwardSelection()
         else:
             return feet.backwardElimination()
+
+    @staticmethod
+    def dataAlgPrompt() -> Path:
+        datPick = input(Printer.datAlgPrompt)
+        if datPick == 1:
+            return BIG_DATA
+        else:
+            return SMALL_DATA
 
     @staticmethod
     def featureCountPrompt() -> int:
@@ -209,19 +222,18 @@ Choice: """
                  
 #MAIN      
 if __name__ == "__main__":
+    dadi = Data()
+    classi=Classifier()
+    vally=Validator()
+    featureList = []
+
     print(Printer.mainWelcome)
     featureCount = Printer.featureCountPrompt()
+    dadi.loadTestData(Printer.dataAlgPrompt())
+
     feet = FeatureSearch(featureCount)
+    algPick = Printer.featureAlgPrompt(feet)
 
-    featureList = []
-    
-    algPick = Printer.featureAlgPrompt()
-
-    dadi = Data()
-    dadi.loadTestData()
     dadi.loadFeatureList(featureList)
-    classi=Classifier()
     classi.train(dadi)
-    vally=Validator()
     print(vally.evaluate(dadi, classi, [2, 4, 6]))
-    print(f"Guess: {classi.test(11)} Actual:{dadi.labels[11]}")
