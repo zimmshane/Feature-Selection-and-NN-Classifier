@@ -43,12 +43,12 @@ class Data:
         data = np.loadtxt(testSet)
         self.labels = data[:,0].astype(int)
         self.features = data[:,1:]
-        logging.info(f"Successfully Loaded into Matrix of Size {data.shape}")
+        logging.info(f"Data Successfully Loaded into Matrix of Size {data.shape}")
         
     def loadFeatureList(self,featureList):
         featureList=np.array(featureList) - 1 #Label col removed -> shift left 1
         self.featureList=featureList
-        logging.info(f"Successfully Loaded Features Set!")
+        logging.info(f"Data Successfully Loaded {featureList}!")
         
 class Classifier: # Calculates distance between every point for NN
     data = Data()
@@ -58,9 +58,8 @@ class Classifier: # Calculates distance between every point for NN
         self.data = data
         self.kNN = kNN
         
-    def test(self,testIndex) -> int:
+    def test(self,testIndex : int,output = True) -> int:
         distList = [] #Heap (Dist to testIndex, Index)
-        logging.info(f"Calculating the Distance between index {testIndex} and the other datapoints...")
         for R in range(len(self.data.features)):
             if R == testIndex: continue
             heapq.heappush(distList,(self.__calcDistance__(R,testIndex),R))
@@ -68,12 +67,13 @@ class Classifier: # Calculates distance between every point for NN
         for _ in range(self.kNN): # Get k shorests distances to testIndex
             _ ,index = heapq.heappop(distList)
             counter[self.data.labels[index]] += 1
-        
-        return counter.most_common(1)[0][0]
+        guess = counter.most_common(1)[0][0]
+        if output: logging.info(f"Index {testIndex} Classifier Test | Guess/Actual: {guess}/{self.data.labels[testIndex]}")
+        return guess
     
                 
     #Returns euclidian distance between testindex and row R
-    def __calcDistance__(self, R, testIndex) -> float:
+    def __calcDistance__(self, R : int, testIndex : int) -> float:
         currentSum : float = 0
         for C in self.data.featureList:
             currentSum += (self.data.features[testIndex,C]-self.data.features[R,C])**2
@@ -83,7 +83,7 @@ class Validator: #Computes classifier's accuracy
     def __init__(self):
         pass
     
-    def evaluate(self, data:Data, classifier:Classifier, featureList = None): 
+    def evaluate(self, data : Data, classifier : Classifier, featureList = None): 
         correct = 0
         accuracy = 0
         if featureList: 
@@ -99,7 +99,7 @@ class Validator: #Computes classifier's accuracy
 class FeatureSearch:
     featureList = []
     
-    def __init__(self,featureCount):
+    def __init__(self,featureCount : int):
         self.featureList = list(range(featureCount))
     
     def evaluate(self): 
