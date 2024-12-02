@@ -3,6 +3,7 @@ import math
 import random
 import heapq
 import logging
+import time
 from pathlib import Path
 from collections import Counter
 
@@ -68,7 +69,6 @@ class Classifier: # Calculates distance between every point for NN
         for _ in range(self.kNN): # Get k shorests distances to testIndex
             _ ,index = heapq.heappop(distList)
             counter[self.data.labels[index]] += 1
-        
         return counter.most_common(1)[0][0]
     
                 
@@ -89,12 +89,14 @@ class Validator: #Computes classifier's accuracy
         if featureList: 
             data.loadFeatureList(featureList) #will load feature list if given one
 
+        timeStart = time.perf_counter_ns()
         for i in range(len(data.features)): #loop through instance id
             if data.labels[i] == classifier.test(i): #check if it got correct for each row
                 correct+= 1
+        timeEnd = time.perf_counter_ns()
         accuracy = (correct / len(data.features)) #divide correct by total instances to get accuracy
         accuracy = round(accuracy, 4)
-        logging.info(f"{featureList} accuracy = {accuracy}")
+        logging.info(f"{featureList} Accuracy: {accuracy} Time: {round((timeEnd - timeStart)*10**(-9), 8)}s")
         
 
 class FeatureSearch:
@@ -112,6 +114,8 @@ class FeatureSearch:
         currentFeatures = set()
         depth = 0
         print(Printer.searchStartForward)
+
+        timeStart = time.perf_counter_ns()
         while depth < n:
             bestChildAccuracy = (-math.inf, None) # (EVAL_SCORE, FEATURE_INDEX_TO_ADD)
             
@@ -127,6 +131,8 @@ class FeatureSearch:
                 currentFeatures.remove(self.featureList[i]) #backtrack
                 
             if bestChildAccuracy[0] < parentAccuracy: # No better options dont add -> exit
+                timeEnd = time.perf_counter_ns()
+                logging.info(f"Time: {round((timeEnd - timeStart)*10**(-9), 8)}s")
                 print(Printer.searchQuit)
                 break
             
@@ -135,7 +141,6 @@ class FeatureSearch:
             Printer.printFeatureChange(featureChanged,currentFeatures,bestChildAccuracy[0],True)
             parentAccuracy = bestChildAccuracy[0]
             depth += 1
-            
         Printer.printFeatureListSelected(currentFeatures,parentAccuracy)
         return list(currentFeatures)
     
@@ -145,6 +150,8 @@ class FeatureSearch:
         currentFeatures = set(self.featureList)
         depth = 1
         logging.info(Printer.searchStartBackward)
+
+        timeStart = time.perf_counter_ns()
         while depth < n:
             bestChildAccuracy = (-math.inf, 0) # (eval,index of that item)
             
@@ -160,6 +167,8 @@ class FeatureSearch:
                 currentFeatures.add(self.featureList[i]) 
                 
             if bestChildAccuracy[0] < parentAccuracy: # No better options dont add -> exit
+                timeEnd = time.perf_counter_ns()
+                logging.info(f"Time: {round((timeEnd - timeStart)*10**(-9), 8)}s")
                 logging.info(Printer.searchQuit)
                 break
             
@@ -190,7 +199,7 @@ Choice: """
     @staticmethod
     def featureAlgPrompt(feet: FeatureSearch) -> list:
         inny = input(Printer.feetAlgPrompt)
-        if inny == 1:
+        if inny == '1':
             return feet.forwardSelection()
         else:
             return feet.backwardElimination()
@@ -198,7 +207,7 @@ Choice: """
     @staticmethod
     def dataAlgPrompt() -> Path:
         datPick = input(Printer.datAlgPrompt)
-        if datPick == 1:
+        if datPick == '1':
             return BIG_DATA
         else:
             return SMALL_DATA
