@@ -28,7 +28,7 @@ from collections import Counter
 
 SMALL_DATA = Path("small-test-dataset.txt")
 BIG_DATA = Path("large-test-dataset.txt")
-logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.INFO)
+logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.DEBUG)
 
     
 class Data:
@@ -47,9 +47,8 @@ class Data:
         logging.info(f"Data Successfully Loaded into Matrix of Size {data.shape}")
         
     def loadFeatureList(self,featureList):
-        featureList=np.array(featureList) - 1 #Label col removed -> shift left 1
-        self.featureList=featureList
-        logging.info(f"Data Successfully Loaded {featureList}!")
+        self.featureList = (np.array(featureList) - 1) #Label col removed -> shift left 1
+        logging.info(f"Feature List Successfully Loaded {featureList}!")
         
 class Classifier: # Calculates distance between every point for NN
     data = Data()
@@ -59,7 +58,7 @@ class Classifier: # Calculates distance between every point for NN
         self.data = data
         self.kNN = kNN
         
-    def test(self,testIndex : int,output = True) -> int:
+    def test(self,testIndex : int) -> int:
         distList = [] #Heap (Dist to testIndex, Index)
         for R in range(len(self.data.features)):
             if R == testIndex: continue
@@ -69,7 +68,7 @@ class Classifier: # Calculates distance between every point for NN
             _ ,index = heapq.heappop(distList)
             counter[self.data.labels[index]] += 1
         guess = counter.most_common(1)[0][0]
-        if output: logging.info(f"Index {testIndex} Classifier Test | Guess/Actual: {guess}/{self.data.labels[testIndex]}")
+        logging.debug(f"Index {testIndex} Classifier Test | Guess/Actual: {guess}/{self.data.labels[testIndex]}")
         return guess
     
                 
@@ -160,7 +159,7 @@ class FeatureSearch:
                 if self.featureList[i] not in currentFeatures: continue
                 currentFeatures.remove(self.featureList[i]) 
                 eval = self.evaluate()
-                logging.info(f"Evaluated {currentFeatures} at {eval} ")
+                logging.debug(f"Evaluated {currentFeatures} at {eval} ")
                 
                 if eval > bestChildAccuracy[0]:
                     bestChildAccuracy = (eval, i)
@@ -243,7 +242,5 @@ if __name__ == "__main__":
 
     feet = FeatureSearch(featureCount)
     algPick = Printer.featureAlgPrompt(feet)
-
-    dadi.loadFeatureList(featureList)
     classi.train(dadi)
     vally.evaluate(dadi, classi, [3, 5, 7])
