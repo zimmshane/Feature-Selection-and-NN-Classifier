@@ -28,36 +28,58 @@ from collections import Counter
 
 SMALL_DATA = Path("small-test-dataset.txt")
 BIG_DATA = Path("large-test-dataset.txt")
+TITANIC = Path("titanic.txt")
 logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.INFO)
 
+# Titanic Feature Key
+#Feature 1: Passenger Ticket Class
+#Feature 2: Passenger Sex
+#Feature 3: Passenger Age in Years
+#Feature 4: Number of Passenger's Siblings Aboard the Titanic
+#Feature 5: Number of Passenger's Parents/Children Aboard the Titanic
+#Feature 6: Passenger Fare (Ticket Cost)
     
 class Data:
     labels = np.array
     features = np.array
     featureList = np.array
+    normalizationMethod = 0
     
-    def __init__ (self):
-        pass
+    def __init__ (self, normalizeMethod : int = 2):
+        self.normalizationMethod = normalizeMethod
        
     def loadTestData(self, testSet=SMALL_DATA):
         logging.info(f"Loading {testSet}...")
         data = np.loadtxt(testSet)
-
         # Extract labels (first column)
         self.labels = data[:, 0].astype(int)
-
         # Extract features (all columns except first)
         features_to_normalize = data[:, 1:]
+    
+        #Normalization Method
+        match self.normalizationMethod:
+            case 0: #Min-Max
+                logging.info(f"Normalization Method: Min-Max")
+                min_vals = np.min(features_to_normalize, axis=0)
+                max_vals = np.max(features_to_normalize, axis=0)
+                # Min-max normalization - store directly in features
+                features_to_normalize = (features_to_normalize - min_vals) / (max_vals - min_vals)
+            case 1: #Standard Normal
+                logging.info(f"Normalization Method: Standard-Normal")
+                means = np.mean(features_to_normalize, axis=0)
+                stds = np.std(features_to_normalize, axis=0)
+                # Normalize features using z-score normalization
+                features_to_normalize = (features_to_normalize - means) / stds
+            case 2:
+                logging.info(f"Normalization Method: Numpy Default")
+                np.linalg.norm(features_to_normalize)
 
-        # Calculate min and max for each feature column
-        min_vals = np.min(features_to_normalize, axis=0)
-        max_vals = np.max(features_to_normalize, axis=0)
+        self.features = features_to_normalize
 
-        # Min-max normalization - store directly in features
-        self.features = (features_to_normalize - min_vals) / (max_vals - min_vals)
-
+        
+        logging.info("Features normalized")
         logging.info(f"Data Successfully Loaded into Matrix of Size {data.shape}")
-        logging.info("Features have been normalized (excluding labels)")
+
 
 
     def loadFeatureList(self, featureList):
@@ -94,12 +116,12 @@ class Classifier: # Calculates distance between every point for NN
         nearest_indices = np.argsort(distances)[:self.kNN]
 
         # Count votes
-        counter = [0, 0]  # [count for label 1, count for label 2]
+        voters = Counter()
         for idx in nearest_indices:
             label = remaining_labels[idx]
-            counter[label - 1] += 1
-
-        return 1 if counter[0] > counter[1] else 2
+            voters[label] += 1
+        result = voters.most_common(1)[0][0]
+        return result
 
 class Validator: #Computes classifier's accuracy
     def __init__(self):
@@ -123,7 +145,7 @@ class Validator: #Computes classifier's accuracy
 
         timeEnd = time.perf_counter_ns()
         accuracy = correct / total
-        logging.info(f"Features: {featureList} Accuracy: {accuracy:.4f} Time: {round((timeEnd - timeStart)*10**(-9), 8)}s")
+        logging.info(f"Features: {featureList} Accuracy: {round(accuracy,4)} Time: {round((timeEnd - timeStart)*10**(-9), 8)}s")
         return accuracy
 
 class FeatureSearch:
@@ -230,6 +252,7 @@ Choice: """
     datAlgPrompt : str ="""Type the number cooresponding to the data you want
 1) Big data 
 2) Small data
+3) Titanic data
 Choice: """
     
     @staticmethod
@@ -245,8 +268,10 @@ Choice: """
         datPick = input(Printer.datAlgPrompt)
         if datPick == '1':
             return BIG_DATA
-        else:
+        elif datPick == '2':
             return SMALL_DATA
+        else:
+            return TITANIC
 
     @staticmethod
     def featureCountPrompt() -> int:
