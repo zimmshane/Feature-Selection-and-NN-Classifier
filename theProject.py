@@ -28,7 +28,7 @@ from collections import Counter
 
 SMALL_DATA = Path("small-test-dataset.txt")
 BIG_DATA = Path("large-test-dataset.txt")
-logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.DEBUG)
+logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.INFO)
 
     
 class Data:
@@ -39,71 +39,105 @@ class Data:
     def __init__ (self):
         pass
        
-    def loadTestData(self,testSet=SMALL_DATA): # SMALL_DATA or BIG_DATA
+    def loadTestData(self, testSet=SMALL_DATA):
         logging.info(f"Loading {testSet}...")
         data = np.loadtxt(testSet)
-        self.labels = data[:,0].astype(int)
-        self.features = data[:,1:]
+
+        # Extract labels (first column)
+        self.labels = data[:, 0].astype(int)
+
+        # Extract features (all columns except first)
+        features_to_normalize = data[:, 1:]
+
+        # Calculate min and max for each feature column
+        min_vals = np.min(features_to_normalize, axis=0)
+        max_vals = np.max(features_to_normalize, axis=0)
+
+        # Min-max normalization - store directly in features
+        self.features = (features_to_normalize - min_vals) / (max_vals - min_vals)
+
         logging.info(f"Data Successfully Loaded into Matrix of Size {data.shape}")
-        
-    def loadFeatureList(self,featureList):
-        self.featureList = (np.array(featureList) - 1) #Label col removed -> shift left 1
-        logging.info(f"Feature List Successfully Loaded {featureList}!")
+        logging.info("Features have been normalized (excluding labels)")
+
+
+    def loadFeatureList(self, featureList):
+        self.featureList = np.array(featureList)
+        logging.debug(f"Feature list loaded: {featureList}")
+
         
 class Classifier: # Calculates distance between every point for NN
     data = Data()
-    kNN = 0
+    kNN = 1
     
-    def train(self,data, kNN = 1):
+    def train(self,data, kNN = 3):
         self.data = data
+        logging.debug(f"Classifier Training Data Loaded!")
         self.kNN = kNN
+        logging.info(f"Set Nearest Neighbor K={self.kNN}")
         
-    def test(self,testIndex : int) -> int:
-        distList = [] #Heap (Dist to testIndex, Index)
-        for R in range(len(self.data.features)):
-            if R == testIndex: continue
-            heapq.heappush(distList,(self.__calcDistance__(R,testIndex),R))
-        counter = Counter()
-        for _ in range(self.kNN): # Get k shorests distances to testIndex
-            _ ,index = heapq.heappop(distList)
-            counter[self.data.labels[index]] += 1
-        guess = counter.most_common(1)[0][0]
-        logging.debug(f"Index {testIndex} Classifier Test | Guess/Actual: {guess}/{self.data.labels[testIndex]}")
-        return guess
-    
-                
-    #Returns euclidian distance between testindex and row R
-    def __calcDistance__(self, R : int, testIndex : int) -> float:
-        currentSum : float = 0
-        for C in self.data.featureList:
-            currentSum += (self.data.features[testIndex,C]-self.data.features[R,C])**2
-        return math.sqrt(currentSum)
+    def test(self, testIndex: int) -> int:
+        # left shift indexes (1 -> 0)
+        feature_indices = [i-1 for i in self.data.featureList]  
+        # isolate test row
+        test_point = self.data.features[testIndex, feature_indices]
+        # remove our test index from features and label array
+        remaining_features = np.delete(self.data.features[:, feature_indices], testIndex, axis=0)
+        remaining_labels = np.delete(self.data.labels, testIndex)
+
+        #https://jaykmody.com/blog/distance-matrices-with-numpy/
+        # array of euclidan dists only wrt selected features
+        # for each row, subtract test point features from current features -> square it -> sum it -> sqrt it
+        distances = np.sqrt(np.sum((remaining_features - test_point)**2, axis=1))
+
+        # create a new array of indexes corrisponding to distance list in sorted order
+        # slice the kNN smallest distance indexs 
+        nearest_indices = np.argsort(distances)[:self.kNN]
+
+        # Count votes
+        counter = [0, 0]  # [count for label 1, count for label 2]
+        for idx in nearest_indices:
+            label = remaining_labels[idx]
+            counter[label - 1] += 1
+
+        return 1 if counter[0] > counter[1] else 2
 
 class Validator: #Computes classifier's accuracy
     def __init__(self):
         pass
     
-    def evaluate(self, data : Data, classifier : Classifier, featureList = None): 
+    def evaluate(self, data: Data, classifier: Classifier, featureList=None) -> float:
         correct = 0
-        accuracy = 0
-        if featureList: 
-            data.loadFeatureList(featureList) #will load feature list if given one
+        total = data.features.shape[0]
+
+        if featureList:
+            data.loadFeatureList(featureList)
 
         timeStart = time.perf_counter_ns()
-        for i in range(len(data.features)): #loop through instance id
-            if data.labels[i] == classifier.test(i): #check if it got correct for each row
-                correct+= 1
+        # loop through every row -> guess answer when leaving out that row 
+        for R in range(total):
+            predicted = classifier.test(R)
+            actual = data.labels[R]
+            if predicted == actual:
+                correct += 1
+            logging.debug(f"Instance {R}: Predicted={predicted}, Actual={actual}")
+
         timeEnd = time.perf_counter_ns()
-        accuracy = (correct / len(data.features)) #divide correct by total instances to get accuracy
-        accuracy = round(accuracy, 4)
-        logging.info(f"{featureList} Accuracy: {accuracy} Time: {round((timeEnd - timeStart)*10**(-9), 8)}s")
-        
+        accuracy = correct / total
+        logging.info(f"Features: {featureList} Accuracy: {accuracy:.4f} Time: {round((timeEnd - timeStart)*10**(-9), 8)}s")
+        return accuracy
 
 class FeatureSearch:
     featureList = []
+    vally : Validator
+    dadi: Data
+    classi : Classifier
     
-    def __init__(self,featureCount : int):
-        self.featureList = list(range(featureCount))
+    
+    def __init__(self, vally : Validator, data : Data, classi : Classifier):
+        self.featureList = list(range(1,data.features.shape[1]))
+        self.vally = vally
+        self.dadi = data
+        self.classi = classi
     
     def evaluate(self): 
         return random.randint(1,100) #stubbed
@@ -116,14 +150,15 @@ class FeatureSearch:
         print(Printer.searchStartForward)
 
         timeStart = time.perf_counter_ns()
+        
         while depth < n:
             bestChildAccuracy = (-math.inf, None) # (EVAL_SCORE, FEATURE_INDEX_TO_ADD)
             
             for i in range(n):
                 if self.featureList[i] in currentFeatures: continue
                 currentFeatures.add(self.featureList[i]) 
-                eval = self.evaluate()
-                print(f"{currentFeatures} Evaluated at {eval}")
+                eval = self.vally.evaluate(self.dadi, self.classi, list(currentFeatures))
+                logging.debug(f"{currentFeatures} Evaluated at {eval}")
                 
                 if eval > bestChildAccuracy[0]:
                     bestChildAccuracy = (eval,i)
@@ -132,7 +167,7 @@ class FeatureSearch:
                 
             if bestChildAccuracy[0] < parentAccuracy: # No better options dont add -> exit
                 timeEnd = time.perf_counter_ns()
-                logging.info(f"Time: {round((timeEnd - timeStart)*10**(-9), 8)}s")
+                logging.info(f"Time: {round((timeEnd - timeStart)*10**(-9), 8)}m")
                 print(Printer.searchQuit)
                 break
             
@@ -141,6 +176,7 @@ class FeatureSearch:
             Printer.printFeatureChange(featureChanged,currentFeatures,bestChildAccuracy[0],True)
             parentAccuracy = bestChildAccuracy[0]
             depth += 1
+            
         Printer.printFeatureListSelected(currentFeatures,parentAccuracy)
         return list(currentFeatures)
     
@@ -158,7 +194,7 @@ class FeatureSearch:
             for i in range(n):
                 if self.featureList[i] not in currentFeatures: continue
                 currentFeatures.remove(self.featureList[i]) 
-                eval = self.evaluate()
+                eval = self.vally.evaluate(self.dadi,self.classi,list(currentFeatures))
                 logging.debug(f"Evaluated {currentFeatures} at {eval} ")
                 
                 if eval > bestChildAccuracy[0]:
@@ -225,8 +261,8 @@ Choice: """
     
     @staticmethod    
     def printFeatureChange(featureChanged,currentFeatures,accuracy,add=True):
-        if add: logging.info(f"Adding Feature {featureChanged}" )
-        else: logging.info(f"Removing Feature {featureChanged}" )
+        if add: logging.info(f"Adding Best Feature: {featureChanged}" )
+        else: logging.info(f"Removing Worst Feature: {featureChanged}" )
         logging.info(f"New Feature Set: {currentFeatures}  Accuracy: {accuracy}")
                  
 #MAIN      
@@ -234,13 +270,10 @@ if __name__ == "__main__":
     dadi = Data()
     classi=Classifier()
     vally=Validator()
-    featureList = []
 
     print(Printer.mainWelcome)
-    featureCount = Printer.featureCountPrompt()
     dadi.loadTestData(Printer.dataAlgPrompt())
-
-    feet = FeatureSearch(featureCount)
-    algPick = Printer.featureAlgPrompt(feet)
     classi.train(dadi)
-    vally.evaluate(dadi, classi, [3, 5, 7])
+    feet = FeatureSearch(vally,dadi,classi)
+    algPick = Printer.featureAlgPrompt(feet)
+    
