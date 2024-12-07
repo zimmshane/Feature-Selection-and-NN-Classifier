@@ -1,9 +1,11 @@
 import numpy as np
 import math
 import random
-import heapq
 import logging
 import time
+import pandas as pd
+import seaborn as sns
+import matplotlib.pyplot as plt
 from pathlib import Path
 from collections import Counter
 
@@ -44,11 +46,13 @@ class Data:
     features = np.array
     featureList = np.array
     normalizationMethod = 0
+    dataset : Path
     
     def __init__ (self, normalizeMethod : int = 0):
         self.normalizationMethod = normalizeMethod
        
     def loadTestData(self, testSet=SMALL_DATA):
+        self.dataset = testSet
         logging.info(f"Loading {testSet}...")
         data = np.loadtxt(testSet)
         # Extract labels (first column)
@@ -62,7 +66,7 @@ class Data:
                 logging.info(f"Normalization Method: Min-Max")
                 min_vals = np.min(features_to_normalize, axis=0)
                 max_vals = np.max(features_to_normalize, axis=0)
-                # Min-max normalization - store directly in features
+                # Min-max normalization 
                 features_to_normalize = (features_to_normalize - min_vals) / (max_vals - min_vals)
             case 1: #Standard Normal
                 logging.info(f"Normalization Method: Standard-Normal")
@@ -73,6 +77,8 @@ class Data:
             case 2:
                 logging.info(f"Normalization Method: Numpy Default")
                 np.linalg.norm(features_to_normalize)
+            case 3: #NONE
+                logging.info(f"Normalization Method: NONE")
 
         self.features = features_to_normalize
 
@@ -111,11 +117,11 @@ class Classifier: # Calculates distance between every point for NN
         # for each row, subtract test point features from current features -> square it -> sum it -> sqrt it
         distances = np.sqrt(np.sum((remaining_features - test_point)**2, axis=1))
 
-        # create a new array of indexes corrisponding to distance list in sorted order
+        # new array of indexes corrisponding to distance list in sorted order
         # slice the kNN smallest distance indexs 
         nearest_indices = np.argsort(distances)[:self.kNN]
 
-        # Count votes
+        # tally the winner
         voters = Counter()
         for idx in nearest_indices:
             label = remaining_labels[idx]
@@ -202,43 +208,124 @@ class FeatureSearch:
         Printer.printFeatureListSelected(currentFeatures,parentAccuracy)
         return list(currentFeatures)
     
-    def backwardElimination(self)->list:
+    def backwardElimination(self) -> list:
         n = len(self.featureList)
-        parentAccuracy = -math.inf
-        currentFeatures = set(self.featureList)
+        global_best_accuracy = -math.inf
+        global_best_features = set()
+        current_features = set(self.featureList)
         depth = 1
         logging.info(Printer.searchStartBackward)
 
         timeStart = time.perf_counter_ns()
+
         while depth < n:
-            bestChildAccuracy = (-math.inf, 0) # (eval,index of that item)
-            
+            bestChildAccuracy = (-math.inf, 0)  # (eval, index of that item)
+
+            # Try removing each feature
             for i in range(n):
-                if self.featureList[i] not in currentFeatures: continue
-                currentFeatures.remove(self.featureList[i]) 
-                eval = self.vally.evaluate(self.dadi,self.classi,list(currentFeatures))
-                logging.debug(f"Evaluated {currentFeatures} at {eval} ")
-                
+                if self.featureList[i] not in current_features:
+                    continue
+                current_features.remove(self.featureList[i])
+                eval = self.vally.evaluate(self.dadi, self.classi, list(current_features))
+                logging.debug(f"Evaluated {current_features} at {eval}")
+
+                # Update best child if current evaluation is better
                 if eval > bestChildAccuracy[0]:
                     bestChildAccuracy = (eval, i)
-                    
-                currentFeatures.add(self.featureList[i]) 
-                
-            if bestChildAccuracy[0] < parentAccuracy: # No better options dont add -> exit
-                timeEnd = time.perf_counter_ns()
-                logging.info(f"Time: {round((timeEnd - timeStart)*10**(-9), 8)}s")
-                logging.info(Printer.searchQuit)
-                break
-            
-            featureChanged = self.featureList[bestChildAccuracy[1]]
-            currentFeatures.remove(featureChanged) #Removing the best child from feature list
-            Printer.printFeatureChange(featureChanged,currentFeatures,bestChildAccuracy[0],False)       
-            parentAccuracy = bestChildAccuracy[0]
-            depth += 1
-        Printer.printFeatureListSelected(currentFeatures,parentAccuracy)
-        return list(currentFeatures)
 
-        
+                # Update global best if we found a better solution
+                if eval > global_best_accuracy:
+                    global_best_accuracy = eval
+                    global_best_features = set(current_features)
+
+                current_features.add(self.featureList[i])
+
+            # no improvement, but we can search deeper
+            if bestChildAccuracy[0] < global_best_accuracy and depth < n-1:
+                # Remove a random feature to escape local maximum
+                available_features = list(current_features)
+                if available_features:  # Make sure we have features to remove
+                    feature_to_remove = random.choice(available_features)
+                    current_features.remove(feature_to_remove)
+                    logging.info(f"Attempting to escape local maximum by removing feature {feature_to_remove}")
+            else:
+                # Remove the feature that gave the best result
+                feature_changed = self.featureList[bestChildAccuracy[1]]
+                current_features.remove(feature_changed)
+                Printer.printFeatureChange(feature_changed, current_features, bestChildAccuracy[0], False)
+
+            depth += 1
+
+        timeEnd = time.perf_counter_ns()
+        logging.info(f"Time: {round((timeEnd - timeStart)*10**(-9), 8)}s")
+
+        # Return to the globally best feature set found
+        Printer.printFeatureListSelected(global_best_features, global_best_accuracy)
+        return list(global_best_features)
+    
+    def simulatedAnnealing(self) -> list:
+        n = len(self.featureList)
+        current_features = set(range(1, n+1))  # Start with all features
+        current_accuracy = self.vally.evaluate(self.dadi, self.classi, list(current_features))
+        best_features = set(current_features)
+        best_accuracy = current_accuracy
+        visited = set()
+        # Settings
+        initial_temp = 1.0
+        final_temp = 0.01
+        alpha = 0.95  # Cooling rate
+        iterations_per_temp = 20
+
+        current_temp = initial_temp
+        logging.info("Starting Simulated Annealing Search...")
+        timeStart = time.perf_counter_ns()
+
+        while current_temp > final_temp:
+            for _ in range(iterations_per_temp):
+                neighbor_features = set(current_features)
+
+                if random.random() < 0.5 and len(neighbor_features) > 1:  # Remove feature
+                    feature_to_remove = random.choice(list(neighbor_features))
+                    neighbor_features.remove(feature_to_remove)
+                else:  # Add feature
+                    available_features = set(range(1, n+1)) - neighbor_features
+                    if available_features:
+                        feature_to_add = random.choice(list(available_features))
+                        neighbor_features.add(feature_to_add)
+                
+                #Don't revisit the same set
+                if frozenset(neighbor_features) in visited: continue
+                
+                # Evaluate neighbor solution
+                neighbor_accuracy = self.vally.evaluate(self.dadi, self.classi, list(neighbor_features))
+
+                # Calculate acceptance probability
+                delta = neighbor_accuracy - current_accuracy
+                acceptance_probability = min(1.0, math.exp(delta / current_temp))
+
+                
+                # Accept or reject neighbor solution
+                if delta > 0 or random.random() < acceptance_probability:
+                    current_features = neighbor_features
+                    current_accuracy = neighbor_accuracy
+                    visited.add(frozenset(current_features))
+
+                    # Maybe update best solution!
+                    if current_accuracy > best_accuracy:
+                        best_accuracy = current_accuracy
+                        best_features = set(current_features)
+                        logging.info(f"New best solution found: {best_features} with accuracy {best_accuracy}")
+
+                logging.debug(f"Temperature: {current_temp:.4f}, Current Accuracy: {current_accuracy:.4f}")
+
+            # cooling
+            current_temp *= alpha
+
+        timeEnd = time.perf_counter_ns()
+        logging.info(f"Time: {round((timeEnd - timeStart)*10**(-9), 8)}s")
+
+        Printer.printFeatureListSelected(best_features, best_accuracy)
+        return list(best_features)
     
 class Printer:
     mainWelcome : str = "\nWelcome to SZIMM011 and LADAM020's Project 2!"
@@ -248,6 +335,7 @@ class Printer:
     feetAlgPrompt : str ="""Type the number of the algorithm you want to run
 1) Forward Selection 
 2) Backward Elimination
+3) Simulated Annealing
 Choice: """
     datAlgPrompt : str ="""Type the number cooresponding to the data you want
 1) Big data 
@@ -260,8 +348,10 @@ Choice: """
         inny = input(Printer.feetAlgPrompt)
         if inny == '1':
             return feet.forwardSelection()
-        else:
+        elif inny == '2':
             return feet.backwardElimination()
+        else:
+            return feet.simulatedAnnealing()
 
     @staticmethod
     def dataAlgPrompt() -> Path:
@@ -301,4 +391,9 @@ if __name__ == "__main__":
     classi.train(dadi)
     feet = FeatureSearch(vally,dadi,classi)
     algPick = Printer.featureAlgPrompt(feet)
+    # dataview = Dataview(dadi)
+    # if dadi.dataset == TITANIC:
+    #     dataview.plot_feature_anaylsis(algPick)
+    # else:
+    #     dataview.plot_generic_set(algPick)
     
