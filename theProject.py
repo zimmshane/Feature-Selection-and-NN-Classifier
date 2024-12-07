@@ -45,7 +45,7 @@ class Data:
     featureList = np.array
     normalizationMethod = 0
     
-    def __init__ (self, normalizeMethod : int = 2):
+    def __init__ (self, normalizeMethod : int = 0):
         self.normalizationMethod = normalizeMethod
        
     def loadTestData(self, testSet=SMALL_DATA):
