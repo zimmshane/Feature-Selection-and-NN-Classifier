@@ -28,7 +28,6 @@ from collections import Counter
 
 SMALL_DATA = Path("./datasets/small-test-dataset.txt")
 BIG_DATA = Path("./datasets/large-test-dataset.txt")
-DEMO = Path("./datasets/demo.txt")
 TITANIC = Path("./datasets/titanic.txt")
 
 
@@ -360,8 +359,6 @@ Choice: """
             return BIG_DATA
         elif datPick == '2':
             return SMALL_DATA
-        elif datPick == "4":
-            return DEMO
         else:
             return TITANIC
 
