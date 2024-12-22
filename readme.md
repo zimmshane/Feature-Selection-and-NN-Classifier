@@ -5,9 +5,9 @@ A Python implementation of feature selection algorithms using k-Nearest Neighbor
 ## Features
 
 - Three feature selection algorithms:
-  - Forward Selection
-  - Backward Elimination
-  - Simulated Annealing
+  1. Forward Selection
+  2. Backward Elimination
+  3. Simulated Annealing
 - k-Nearest Neighbor classification
 - Multiple data normalization options
 - Leave-one-out cross-validation
@@ -73,19 +73,20 @@ Input data should be formatted as a text file with:
 - One instance per line
 
 ### Example Data Format
+Your input dataset should be a `.txt` and should look something like this.
 ```
-1 0.1 0.2 0.3
-0 0.4 0.5 0.6
-1 0.7 0.8 0.9
+1    0.1   0.2   0.3
+0    0.4   0.5   0.6
+1    0.7   0.8   0.9
 ```
 
 ## Algorithms
 
 ### Feature Selection Methods
 
-1. **Forward Selection**: Starts with no features and iteratively adds the most beneficial features
-2. **Backward Elimination**: Starts with all features and iteratively removes the least beneficial features
-3. **Simulated Annealing**: Uses probabilistic approach to search feature space, potentially escaping local optima
+1. **Forward Selection** [`forward`]: Starts with no features and iteratively adds the most beneficial features
+2. **Backward Elimination**[`backward`]: Starts with all features and iteratively removes the least beneficial features
+3. **Simulated Annealing**[`simulated-annealing`]: Uses probabilistic approach to search feature space, potentially escaping local optima
 
 ### Normalization Options
 
@@ -105,5 +106,3 @@ Equal Contributions to this project came from [Lindsay Adams](https://github.com
 ## Acknowledgments
 
 This project was developed as part of CS-170 at UCR.
-
-
